@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # IPSTAR (Shin Satellite) IPX-5100ME modem setup & monitoring script.
-# Version 0.4
+# Version 0.5
 
 # Copyright (c) 2013 - 2015 Finn Thain
 # fthain@telegraphics.com.au
@@ -140,7 +140,7 @@ wait_for_link () {
 wait_for_http () {
   printf "Waiting for satellite modem HTTP server ... "
   while true ; do
-    _curl --max-time 4 --get "$url" > /dev/null
+    _curl --max-time 4 --get "$url" > /dev/null 2>&1
     case $? in
     0 )
       echo ok
@@ -151,7 +151,7 @@ wait_for_http () {
       ;;
     * )
       echo failed
-      return 1
+      exit 1
       ;;
     esac
   done
@@ -259,7 +259,7 @@ for arg in "$@" ; do
       wait_for_http
       get 'doc="ConsumerBoxConfig.xml"' /parameters >> "${xml}-debug-volatile"
       get ''                         /parameters >> "${xml}-debug-nonvolatile"
-    ;;
+      ;;
     --poll )
       wait_for_http
       while true ; do
@@ -268,12 +268,12 @@ for arg in "$@" ; do
         report_modem_status
         sleep 1
       done
-    ;;
+      ;;
     --reboot )
       wait_for_http
       reboot_modem
       wait_for_link
-    ;;
+      ;;
     --setup )
       wait_for_http
 
@@ -291,11 +291,11 @@ for arg in "$@" ; do
 
       log_rpc commit '/*'
 
-    ;;
+      ;;
     * )
       echo "Usage: $0 { --poll | --reboot | --setup | --debug }"
       exit 1
-    ;;
+      ;;
   esac
 done
 
