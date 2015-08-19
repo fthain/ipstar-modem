@@ -127,7 +127,7 @@ log_rpc () {
 
 wait_for_link () {
   printf "Waiting for echo reply from satellite modem ... "
-  while : ; do
+  while true ; do
     ping -q -c 1 "$ip" > /dev/null 2> /dev/null && break
     sleep 2
   done
@@ -138,15 +138,23 @@ wait_for_link () {
 # Wait for the modem HTTP server to come online
 
 wait_for_http () {
-  wait_for_link
   printf "Waiting for satellite modem HTTP server ... "
-  while : ; do
-    _curl --max-time 4 --get "$url" > /dev/null && break
-    test "$?" != 7 && test "$?" != 28 && test "$?" != 52 && break
-    sleep 1
+  while true ; do
+    _curl --max-time 4 --get "$url" > /dev/null
+    case $? in
+    0 )
+      echo ok
+      return 0
+      ;;
+    7 | 28 | 52 )
+      sleep 1
+      ;;
+    * )
+      echo failed
+      return 1
+      ;;
+    esac
   done
-  echo ok
-  echo
 }
 
 
@@ -185,14 +193,14 @@ report_modem_status () {
 
 check_default_route () {
   printf "Checking default route ... "
-  router=$( netstat -nr | perl -ne '/^(default|0.0.0.0)\s+(\S+)/ && print $2' )
-  if test "$router" = "$ip" ; then
-    echo ok
-    return 0
-  else
-    echo "wrong gateway: ${router}"
-    return 1
-  fi
+  for router in $( netstat -nr | perl -ne '/^(default|0.0.0.0)\s+(\S+)/ && print $2.$/' ) ; do
+    if test "$router" = "$ip" ; then
+      echo ok
+      return 0
+    fi
+  done
+  echo "wrong gateway: ${router}"
+  return 1
 }
 
 
@@ -204,7 +212,7 @@ test_name_servers () {
   do
     printf "Trying name server ${ns} ... "
     if ping -q -c 1 "$ns" > /dev/null 2>&1 ; then
-      rr=$( dig +short @"$ns" -x "$ns" 2> /dev/null | wc -l )
+      rr=$( dig +short @"$ns" -x 8.8.8.8 2> /dev/null | wc -l )
       if test "$rr" -ge 1 ; then
         echo ok
         return 0
@@ -223,17 +231,19 @@ test_name_servers () {
 # Test web connectivity
 
 test_web_servers () {
-  for ws in http://wo1.ipstar.com.au/ \
-            http://wo2.ipstar.com.au/ \
-            http://www.google.com.au/
+  for ws in http://google.com/
   do
     printf "Trying web server ${ws} ... "
-    if _curl --max-redirs 0 --max-time 5 --get "$ws" > /dev/null 2>&1 ; then
+    _curl --max-redirs 0 --max-time 10 --get "$ws" > /dev/null 2>&1
+    case $? in
+    0 | 47 )
       echo ok
       return 0
-    else
+      ;;
+    * )
       echo failed
-    fi
+      ;;
+    esac
   done
   return 1
 }
@@ -246,10 +256,12 @@ wait_for_link
 for arg in "$@" ; do
   case "$arg" in
     --debug )
+      wait_for_http
       get 'doc="ConsumerBoxConfig.xml"' /parameters >> "${xml}-debug-volatile"
       get ''                         /parameters >> "${xml}-debug-nonvolatile"
     ;;
     --poll )
+      wait_for_http
       while true ; do
         echo
         date
@@ -258,10 +270,12 @@ for arg in "$@" ; do
       done
     ;;
     --reboot )
+      wait_for_http
       reboot_modem
       wait_for_link
     ;;
     --setup )
+      wait_for_http
 
 #      log_rpc update /parameters/WWW/SATELLITE_LINK/RXFrequency \
 #                     '<RXFrequency type="double">1687.625</RXFrequency>'
@@ -278,6 +292,10 @@ for arg in "$@" ; do
       log_rpc commit '/*'
 
     ;;
+    * )
+      echo "Usage: $0 { --poll | --reboot | --setup | --debug }"
+      exit 1
+    ;;
   esac
 done
 
@@ -287,6 +305,7 @@ if test "$*" = "" ; then
   else
     echo Internet connectivity test failed
     date
+    wait_for_http
     report_modem_status
   fi
 fi
