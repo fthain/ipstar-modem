@@ -3,6 +3,9 @@
 # IPSTAR (Shin Satellite) IPX-5100ME modem setup & monitoring script.
 # Version 0.5
 
+# Requires XML::Simple perl module. Mac OS X has it pre-installed.
+# Debian/Ubuntu Linux users should $ sudo apt-get install libxml-simple-perl
+
 # Copyright (c) 2013 - 2015 Finn Thain
 # fthain@telegraphics.com.au
 
