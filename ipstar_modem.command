@@ -215,8 +215,7 @@ test_name_servers () {
   do
     printf "Trying name server ${ns} ... "
     if ping -q -c 1 "$ns" > /dev/null 2>&1 ; then
-      rr=$( dig +short @"$ns" -x 8.8.8.8 2> /dev/null | wc -l )
-      if test "$rr" -ge 1 ; then
+      if dig +short @"$ns" -x 8.8.8.8 > /dev/null 2>&1 ; then
         echo ok
         return 0
       else
