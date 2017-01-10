@@ -36,11 +36,12 @@ set -e -u
 
 ip=192.168.5.100
 # ip=192.168.0.1
+user=ADMIN
+pass=operator
+
 url="http://${ip}:8080/xWebGateway.cgi"
 jar=$( mktemp -t ipstar-cookie-XXXXXX )
 xml=$( mktemp -t ipstar-output-XXXXXX )
-user=ADMIN
-pass=operator
 
 trap "echo; quit 2" HUP INT QUIT TERM
 trap "quit" EXIT
@@ -253,7 +254,6 @@ test_web_servers () {
 
 # Main program
 
-clear
 wait_for_link
 for arg in "$@" ; do
   case "$arg" in
