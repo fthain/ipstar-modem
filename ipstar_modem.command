@@ -7,7 +7,6 @@
 # Debian/Ubuntu Linux users should $ sudo apt-get install libxml-simple-perl
 
 # Copyright (c) 2013 - 2015 Finn Thain
-# fthain@telegraphics.com.au
 
 # See also ipstarlog.py by David Boxall,
 # ipstar_satellite_status.php by Sony AK Knowledge Center and
